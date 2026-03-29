@@ -24,7 +24,7 @@ public.config = config
 
 local backup, revert = lib.createBackupSystem()
 
-local PACK_ID = error("FILL: set PACK_ID to your pack id")
+local PACK_ID = "run-director"
 
 -- =============================================================================
 -- FILL: Module definition

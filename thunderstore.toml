@@ -3,10 +3,10 @@ schemaVersion = "0.0.1"
 
 [package]
 namespace = "adamant"
-name = "TODO_ModName"
-description = "TODO: Short description of the mod"
+name = "RunDirectorBoonBans"
+description = "TODO: description for RunDirectorBoonBans"
 versionNumber = "0.0.1"
-websiteUrl = "https://github.com/h2-modpack/h2-modpack-TODO_ModName"
+websiteUrl = "https://github.com/h2pack-rundirector/RunDirectorBoonBans"
 containsNsfwContent = false
 
 [package.dependencies]
