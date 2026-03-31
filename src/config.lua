@@ -1,6 +1,67 @@
--- Default configuration values.
--- Users can override these via Chalk (config.lua in plugins_data).
 return {
-    Enabled = true,
+    Enabled = false,
     DebugMode = false,
+
+    EnablePadding = false,
+    Padding_UsePriority = true,
+    Padding_AvoidFutureAllowed = true,
+    Padding_AllowDuos = false,
+
+    ImproveFirstNBoonRarity = 0,
+    ViewRegion = 4,
+
+    PackedAphrodite1 = 0, PackedAphrodite2 = 0, PackedAphrodite3 = 0, PackedAphrodite4 = 0, PackedAphrodite5 = 0,
+    PackedApollo1 = 0, PackedApollo2 = 0, PackedApollo3 = 0, PackedApollo4 = 0, PackedApollo5 = 0,
+    PackedAres1 = 0, PackedAres2 = 0, PackedAres3 = 0, PackedAres4 = 0, PackedAres5 = 0,
+    PackedDemeter1 = 0, PackedDemeter2 = 0, PackedDemeter3 = 0, PackedDemeter4 = 0, PackedDemeter5 = 0,
+    PackedHephaestus1 = 0, PackedHephaestus2 = 0, PackedHephaestus3 = 0, PackedHephaestus4 = 0, PackedHephaestus5 = 0,
+    PackedHera1 = 0, PackedHera2 = 0, PackedHera3 = 0, PackedHera4 = 0, PackedHera5 = 0,
+    PackedHestia1 = 0, PackedHestia2 = 0, PackedHestia3 = 0, PackedHestia4 = 0, PackedHestia5 = 0,
+    PackedPoseidon1 = 0, PackedPoseidon2 = 0, PackedPoseidon3 = 0, PackedPoseidon4 = 0, PackedPoseidon5 = 0,
+    PackedZeus1 = 0, PackedZeus2 = 0, PackedZeus3 = 0, PackedZeus4 = 0, PackedZeus5 = 0,
+
+    PackedRarityAphrodite = 0,
+    PackedRarityApollo = 0,
+    PackedRarityAres = 0,
+    PackedRarityDemeter = 0,
+    PackedRarityHephaestus = 0,
+    PackedRarityHera = 0,
+    PackedRarityHestia = 0,
+    PackedRarityPoseidon = 0,
+    PackedRarityZeus = 0,
+    PackedRarityArtemis = 0,
+    PackedRarityAthena = 0,
+    PackedRarityDionysus = 0,
+    PackedRarityHermes = 0,
+
+    PackedStaff1 = 0, PackedStaff2 = 0, PackedStaff3 = 0,
+    PackedDagger1 = 0, PackedDagger2 = 0, PackedDagger3 = 0,
+    PackedAxe1 = 0, PackedAxe2 = 0, PackedAxe3 = 0,
+    PackedTorch1 = 0, PackedTorch2 = 0, PackedTorch3 = 0,
+    PackedLob1 = 0, PackedLob2 = 0, PackedLob3 = 0,
+    PackedSuit1 = 0, PackedSuit2 = 0, PackedSuit3 = 0,
+
+    PackedHermes1 = 0, PackedHermes2 = 0,
+
+    PackedChaosBuff = 0,
+    PackedChaosCurse = 0,
+    PackedArtemis = 0,
+    PackedAthena = 0,
+    PackedSelene = 0,
+
+    PackedArachne = 0,
+    PackedNarcissus = 0,
+    PackedEcho = 0,
+    PackedHades = 0,
+    PackedMedea = 0,
+    PackedCirce = 0,
+    PackedIcarus = 0,
+    PackedDionysus = 0,
+
+    PackedHadesKeepsake = 0,
+    PackedCirceBNB = 0,
+    PackedCirceCRD = 0,
+    PackedJudgement1 = 0,
+    PackedJudgement2 = 0,
+    PackedJudgement3 = 0,
 }
