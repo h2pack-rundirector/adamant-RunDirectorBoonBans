@@ -323,7 +323,7 @@ end
 for _, def in ipairs(baseSpecials) do
     local dynamicBits = GetBitCount(def.lootSource, def.key)
     RegisterGod(def.metaKey, {
-        key = def.key, 
+        key = def.key,
         displayTextKey = def.display,
         colorKey = def.color,
         uiGroup = def.group,
