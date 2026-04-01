@@ -111,10 +111,10 @@ end
 
 local function IsGodPoolFilteringActive()
     local godPool = rom.mods["adamant-RunDirectorGodPool"]
-    if not godPool or not godPool.config or not godPool.definition or type(godPool.isGodEnabledInPool) ~= "function" then
+    if not godPool or not godPool.store or not godPool.definition or type(godPool.isGodEnabledInPool) ~= "function" then
         return false, nil
     end
-    if not lib.isEnabled(godPool.config, godPool.definition.modpack) then
+    if not lib.isEnabled(godPool.store, godPool.definition.modpack) then
         return false, nil
     end
     return true, godPool

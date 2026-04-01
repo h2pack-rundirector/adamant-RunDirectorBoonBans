@@ -3,18 +3,19 @@ local godMeta = internal.godMeta
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
 local lib = rom.mods["adamant-ModpackLib"]
+local store = internal.store
 
 local band, lshift, rshift, bor, bnot = bit32.band, bit32.lshift, bit32.rshift, bit32.bor, bit32.bnot
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, config.DebugMode, fmt, ...)
+    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 local function ReadValue(key, specialState)
     if specialState then
         return specialState.get(key)
     end
-    return config[key]
+    return store.read(key)
 end
 
 local function WriteValue(key, value, specialState)
@@ -52,7 +53,7 @@ function internal.GetRunState()
     if not CurrentRun.RunDirector_BoonBans_State then
         CurrentRun.RunDirector_BoonBans_State = {
             BoonPickCounts = {},
-            ImproveFirstNBoonRarity = config.ImproveFirstNBoonRarity or 0,
+            ImproveFirstNBoonRarity = store.read("ImproveFirstNBoonRarity") or 0,
         }
     end
     return CurrentRun.RunDirector_BoonBans_State

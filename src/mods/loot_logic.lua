@@ -4,6 +4,7 @@
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 local lib = rom.mods["adamant-ModpackLib"]
+local store = internal.store
 
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
@@ -15,7 +16,7 @@ local function IsBanManagerActive()
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, config.DebugMode, fmt, ...)
+    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 local isKeepsakeOffering = false
@@ -53,8 +54,8 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         end
     end
 
-    if config.EnablePadding and #banned > 0 then
-        local usePriority = (config.Padding_UsePriority ~= false)
+    if store.read("EnablePadding") and #banned > 0 then
+        local usePriority = (store.read("Padding_UsePriority") ~= false)
         local prioritySet = {}
         if usePriority and priorityList then
             for _, name in ipairs(priorityList) do
@@ -80,7 +81,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         ShuffleTable(lowPrioPool)
 
         local finalPool = {}
-        local bias = config.Padding_PriorityChance or 0.75
+        local bias = store.read("Padding_PriorityChance") or 0.75
         while #highPrioPool > 0 or #lowPrioPool > 0 do
             local pickHigh = false
 
@@ -99,8 +100,8 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
             end
         end
 
-        local avoidFuture = (config.Padding_AvoidFutureAllowed ~= false)
-        local allowDuos = (config.Padding_AllowDuos == true)
+        local avoidFuture = (store.read("Padding_AvoidFutureAllowed") ~= false)
+        local allowDuos = (store.read("Padding_AllowDuos") == true)
 
         for _, pending in ipairs(finalPool) do
             local skipPadding = false
@@ -140,7 +141,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         end
     end
 
-    if config.DebugMode and #queue > 0 then
+    if store.read("DebugMode") and #queue > 0 then
         Log("[Micro] PriorityQueue generated. Items: %d", #queue)
     end
 
@@ -209,7 +210,7 @@ modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, loot
         GetTotalLootChoices()
     )
 
-    if config.DebugMode then
+    if store.read("DebugMode") then
         Log("Generated Priority Queue:")
         for i, queued in ipairs(queue) do
             Log("  %d. %s (Rarity: %s)", i, queued.ItemName, tostring(queued.rarity))

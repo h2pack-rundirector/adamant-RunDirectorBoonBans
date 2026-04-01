@@ -42,10 +42,10 @@ This mod is designed to work standalone **or** as part of the [H2 Modpack](https
 
 Special modules have custom state beyond a simple on/off toggle, things like weapon selections, aspect choices, or multi-field configurations. ImGui renders every frame and reads values constantly, but writing to Chalk (the config persistence layer) on every frame is expensive.
 
-The solution is `public.specialState`, a managed state object created by Lib:
+The solution is `public.store.specialState`, a managed state object created by Lib:
 
 ```lua
-public.specialState = lib.createSpecialState(config, public.definition.stateSchema)
+public.store = lib.createStore(config, public.definition.stateSchema)
 ```
 
 `specialState` owns a private staging table and exposes:
@@ -67,6 +67,4 @@ The lifecycle works like this:
 
 Do not write `config` directly for schema-backed fields inside `DrawTab` or `DrawQuickContent`.
 
-In debug mode, hosted and standalone special-module paths can warn if a special writes schema-backed `config` directly instead of using `public.specialState`.
-
-In practice: read from `specialState.view`, mutate through `public.specialState`, declare your fields in `stateSchema`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.
+In practice: read from `specialState.view`, mutate through `public.store.specialState`, declare your fields in `stateSchema`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.

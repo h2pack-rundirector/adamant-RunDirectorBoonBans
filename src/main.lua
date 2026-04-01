@@ -10,8 +10,7 @@ chalk = mods["SGG_Modding-Chalk"]
 reload = mods["SGG_Modding-ReLoad"]
 local lib = mods["adamant-ModpackLib"]
 
-config = chalk.auto("config.lua")
-public.config = config
+local config = chalk.auto("config.lua")
 
 local _, revert = lib.createBackupSystem()
 
@@ -61,8 +60,8 @@ do
     end
 end
 
-local managedSpecialState = lib.createSpecialState(config, public.definition.stateSchema)
-public.specialState = managedSpecialState
+public.store = lib.createStore(config, public.definition.stateSchema)
+internal.store = public.store
 
 local function SyncPublicExports()
     public.DrawTab = internal.DrawTab
@@ -98,7 +97,7 @@ modutil.once_loaded.game(function()
     loader.load(function()
         import_as_fallback(rom.game)
         registerHooks()
-        if lib.isEnabled(config, public.definition.modpack) then apply() end
+        if lib.isEnabled(public.store, public.definition.modpack) then apply() end
     end, function()
         import_as_fallback(rom.game)
         reloadUi()
@@ -107,8 +106,8 @@ end)
 
 local standaloneUi = lib.standaloneSpecialUI(
     public.definition,
-    config,
-    public.specialState,
+    public.store,
+    public.store.specialState,
     apply,
     revert,
     {

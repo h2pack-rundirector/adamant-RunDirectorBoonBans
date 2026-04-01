@@ -1,13 +1,14 @@
 ---@meta _
 -- Single source of truth for Run Director (BanManager + GodPoolManipulator)
 local lib = rom.mods["adamant-ModpackLib"]
+local store = RunDirectorBoonBans_Internal.store
 
 local meta = {}
 
 local internal = RunDirectorBoonBans_Internal
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, config.DebugMode, fmt, ...)
+    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 -- =============================================================================

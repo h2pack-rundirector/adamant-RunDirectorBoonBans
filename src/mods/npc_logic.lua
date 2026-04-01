@@ -4,6 +4,7 @@
 local internal = RunDirectorBoonBans_Internal
 local godInfo = internal.godInfo
 local lib = rom.mods["adamant-ModpackLib"]
+local store = internal.store
 
 local band = bit32.band
 local t_insert = table.insert
@@ -17,7 +18,7 @@ local function IsBanManagerActive()
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, config.DebugMode, fmt, ...)
+    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
@@ -113,7 +114,7 @@ local function wrapNPCChoice(funcName)
                 end
             end
 
-            if #allowed > 0 and (config.EnablePadding or funcName == "CirceBlessingChoice") then
+            if #allowed > 0 and (store.read("EnablePadding") or funcName == "CirceBlessingChoice") then
                 if #allowed < GetTotalLootChoices() then
                     local pool = {}
                     for _, bannedOption in ipairs(banned) do
@@ -178,7 +179,7 @@ modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
 
     if #allowed == 0 then return eligible end
 
-    if #allowed < GetTotalLootChoices() and config.EnablePadding then
+    if #allowed < GetTotalLootChoices() and store.read("EnablePadding") then
         local pool = { table.unpack(banned) }
         local seen = {}
         for _, allowedSpell in ipairs(allowed) do

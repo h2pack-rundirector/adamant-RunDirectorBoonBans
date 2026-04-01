@@ -4,6 +4,7 @@
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 local lib = rom.mods["adamant-ModpackLib"]
+local store = internal.store
 
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
@@ -16,11 +17,11 @@ local function GetRunState()
 end
 
 local function IsBanManagerActive()
-    return lib.isEnabled(config, internal.definition.modpack)
+    return lib.isEnabled(store, internal.definition.modpack)
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, config.DebugMode, fmt, ...)
+    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 local function GetRootKey(key)
