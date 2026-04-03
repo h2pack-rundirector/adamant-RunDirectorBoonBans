@@ -31,12 +31,12 @@ public.definition = {
 internal.definition = public.definition
 
 public.definition.stateSchema = {
-    { type = "checkbox", configKey = "EnablePadding", default = config.EnablePadding },
-    { type = "checkbox", configKey = "Padding_UsePriority", default = config.Padding_UsePriority },
+    { type = "checkbox", configKey = "EnablePadding",              default = config.EnablePadding },
+    { type = "checkbox", configKey = "Padding_UsePriority",        default = config.Padding_UsePriority },
+    { type = "int32",    configKey = "Padding_PriorityChance",     default = config.Padding_PriorityChance, min = 0, max = 100 },
     { type = "checkbox", configKey = "Padding_AvoidFutureAllowed", default = config.Padding_AvoidFutureAllowed },
-    { type = "checkbox", configKey = "Padding_AllowDuos", default = config.Padding_AllowDuos },
-    { type = "stepper", configKey = "ImproveFirstNBoonRarity", default = config.ImproveFirstNBoonRarity, min = 0, max = 15 },
-    { type = "int32", configKey = "ViewRegion", default = config.ViewRegion },
+    { type = "checkbox", configKey = "Padding_AllowDuos",          default = config.Padding_AllowDuos },
+    { type = "stepper",  configKey = "ImproveFirstNBoonRarity",    default = config.ImproveFirstNBoonRarity,   min = 0, max = 15 },
 }
 
 do

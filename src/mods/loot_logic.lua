@@ -79,7 +79,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         ShuffleTable(lowPrioPool)
 
         local finalPool = {}
-        local bias = store.read("Padding_PriorityChance") or 0.75
+        local bias = math.max(0, math.min(100, store.read("Padding_PriorityChance") or 75)) / 100
         while #highPrioPool > 0 or #lowPrioPool > 0 do
             local pickHigh = false
 

@@ -1,6 +1,3 @@
----@meta _
--- Single source of truth for Run Director (BanManager + GodPoolManipulator)
-
 local meta = {}
 
 local internal = RunDirectorBoonBans_Internal
@@ -254,10 +251,7 @@ for _, def in ipairs(baseOlympians) do
     RegisterGod(def.name, {
         key = def.name,
         displayTextKey = def.name,
-        label = def.name,
         colorKey = def.color,
-        core = (group == GROUP_CORE),
-        lootKey = loot,
         packedConfig = { var = "Packed" .. def.name .. "1", offset = 0, bits = dynamicBits },
         lootSource = srcData,
         uiGroup = group,
@@ -337,7 +331,6 @@ for _, def in ipairs(baseSingles) do
     RegisterGod(def.key, {
         key = def.key,
         displayTextKey = def.display or def.key,
-        label = def.key,
         colorKey = def.color,
         packedConfig = { var = "Packed" .. def.key, offset = 0, bits = dynamicBits },
         lootSource = sourceData,
@@ -359,126 +352,12 @@ for _, def in ipairs(baseSpecials) do
     })
 end
 
--- =============================================================================
--- 5. EXPORT
--- =============================================================================
 
 internal.godMeta = meta
 
--- Global Lookup Tables
-internal.lootKeyLookup = {}
-internal.priorityLabels = { "None" }
-internal.priorityValues = { "" }
-
-local orderedKeys = {}
-for k, v in pairs(meta) do
-    if v.lootKey then
-        internal.lootKeyLookup[v.lootKey] = v
-        if v.core and v.tier == 1 then table.insert(orderedKeys, k) end
-    end
-end
-table.sort(orderedKeys)
-
-for _, key in ipairs(orderedKeys) do
-    local m = meta[key]
-    table.insert(internal.priorityLabels, m.label or key)
-    table.insert(internal.priorityValues, m.lootKey)
-end
 
 -- =============================================================================
--- 6. ENCOUNTER META
--- =============================================================================
-local encounterDefinitions = {}
-local currentBit = 0
-
-local BiomeMap = { F = "Erebus", G = "Oceanus", N = "Ephyra", O = "Thessaly", P = "Olympus", H = "Fields", I = "Tartarus" }
-
-local function DefineEncounter(data)
-    data.bit = currentBit
-    currentBit = currentBit + 1
-
-    local regionName = BiomeMap[data.biome] or "Unknown"
-    data.region = regionName
-
-    if not data.label then
-        data.label = string.format("%s (%s)", data.id, regionName)
-    end
-
-    data.minDefault = data.min
-    data.maxDefault = data.max
-
-    local prefix = "Packed" .. (data.type or "")
-    local keyIdentifier = data.id
-
-    if data.useRegionInKey then
-        if data.id == data.type then
-            keyIdentifier = regionName
-        else
-            keyIdentifier = data.id .. regionName
-        end
-    end
-
-    data.configKeyMin = prefix .. keyIdentifier .. "Min"
-    data.configKeyMax = prefix .. keyIdentifier .. "Max"
-    data.var = "PackedEncounterStatus"
-
-    table.insert(encounterDefinitions, data)
-end
-
--- COMBAT
-DefineEncounter({ id = "Artemis", type = "Combat", biome = "F", min = 4, max = 16 })
-DefineEncounter({ id = "Artemis", type = "Combat", biome = "G", min = 4, max = 16 })
-DefineEncounter({ id = "Artemis", type = "Combat", biome = "N", min = 4, max = 16 })
-
-DefineEncounter({ id = "Nemesis", type = "Combat", biome = "F", min = 4, max = 10 })
-DefineEncounter({ id = "Nemesis", type = "Combat", biome = "G", min = 4, max = 10 })
-DefineEncounter({ id = "Nemesis", type = "Combat", biome = "H", min = 4, max = 10 })
-DefineEncounter({ id = "Nemesis", type = "Combat", biome = "I", min = 4, max = 10 })
-
-DefineEncounter({ id = "Heracles", type = "Combat", biome = "N", min = 0, max = 20 })
-DefineEncounter({ id = "Heracles", type = "Combat", biome = "O", min = 0, max = 20 })
-DefineEncounter({ id = "Heracles", type = "Combat", biome = "P", min = 0, max = 20 })
-
-DefineEncounter({ id = "Icarus", type = "Combat", biome = "O", min = 3, max = 8 })
-DefineEncounter({ id = "Icarus", type = "Combat", biome = "P", min = 3, max = 8 })
-DefineEncounter({ id = "Athena", type = "Combat", biome = "P", min = 4, max = 8 })
-
--- STORY
-DefineEncounter({ id = "Arachne", type = "Story", biome = "F", min = 4, max = 8 })
-DefineEncounter({ id = "Narcissus", type = "Story", biome = "G", min = 3, max = 6 })
-DefineEncounter({ id = "Medea", type = "Story", biome = "N", min = 0, max = 1 })
-DefineEncounter({ id = "Circe", type = "Story", biome = "O", min = 3, max = 5 })
-DefineEncounter({ id = "Dionysus", type = "Story", biome = "P", min = 2, max = 7 })
-
-
--- MIDSHOP
-DefineEncounter({ id = "Shop", type = "Shop", biome = "F", useRegionInKey = true, min = 4, max = 6 })
-DefineEncounter({ id = "Shop", type = "Shop", biome = "G", useRegionInKey = true, min = 3, max = 6 })
-DefineEncounter({ id = "Shop", type = "Shop", biome = "O", useRegionInKey = true, min = 4, max = 5 })
-DefineEncounter({ id = "Shop", type = "Shop", biome = "P", useRegionInKey = true, min = 5, max = 7 })
-
--- TRIALS
-DefineEncounter({ id = "Trial", type = "Trial", biome = "F", useRegionInKey = true, min = 6, max = 10 })
-DefineEncounter({ id = "Trial", type = "Trial", biome = "G", useRegionInKey = true, min = 3, max = 7 })
-DefineEncounter({ id = "Trial", type = "Trial", biome = "O", useRegionInKey = true, min = 2, max = 6 })
-
--- FOUNTAINS
-DefineEncounter({ id = "Fountain", type = "Fountain", biome = "F", useRegionInKey = true, min = 4, max = 8 })
-DefineEncounter({ id = "Fountain", type = "Fountain", biome = "G", useRegionInKey = true, min = 4, max = 6 })
-DefineEncounter({ id = "Fountain", type = "Fountain", biome = "O", useRegionInKey = true, min = 3, max = 5 })
-DefineEncounter({ id = "Fountain", type = "Fountain", biome = "P", useRegionInKey = true, min = 4, max = 7 })
-
-internal.encounterDefinitions = encounterDefinitions
-
-local lookup = {}
-for _, def in ipairs(encounterDefinitions) do
-    if not lookup[def.id] then lookup[def.id] = {} end
-    lookup[def.id][def.biome] = def
-end
-internal.encounterLookup = lookup
-
--- =============================================================================
--- 7. RARITY MAPPING
+-- 5. RARITY MAPPING
 -- =============================================================================
 local rarityEligible = {
     Aphrodite  = "PackedRarityAphrodite",

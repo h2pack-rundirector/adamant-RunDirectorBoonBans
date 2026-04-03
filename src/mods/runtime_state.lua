@@ -37,7 +37,14 @@ local function GetSourceColor(name)
 end
 
 local function PopulateGodInfo()
+    for key in pairs(godInfo) do
+        godInfo[key] = nil
+    end
     godInfo.traitLookup = {}
+
+    for key, _ in pairs(godMeta) do
+        godInfo[key] = { color = GetSourceColor(key), boons = {} }
+    end
 
     local function addBoonToRuntime(godKey, boonKey, index, overrideDisplayName)
         local traitData = TraitData[boonKey]
@@ -72,10 +79,6 @@ local function PopulateGodInfo()
     end
 
     for key, meta in pairs(godMeta) do
-        if not godInfo[key] then
-            godInfo[key] = { color = GetSourceColor(key), boons = {} }
-        end
-
         if not meta.duplicateOf and meta.lootSource then
             local src = meta.lootSource
 

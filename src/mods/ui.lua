@@ -34,6 +34,7 @@ local NPC_GROUPS = { "UW NPC", "SF NPC", "Keepsakes" }
 local openGodName = nil
 local activeBoonTab = ""
 local sortedGodKeysByGroup = nil
+local sliderIntDrafts = {}
 
 local function GetThemeColors(theme)
     return (theme and theme.colors) or DEFAULT_THEME_COLORS
@@ -57,6 +58,35 @@ local function DrawStepInput(ui, uiState, label, configKey, minValue, maxValue, 
     ui.SameLine()
     if ui.Button("+") and value < maxValue then
         uiState.set(configKey, value + step)
+    end
+    ui.PopID()
+end
+
+local function DrawDeferredSliderInt(ui, uiState, label, configKey, minValue, maxValue, defaultValue)
+    local liveValue = uiState.view[configKey]
+    if liveValue == nil then
+        liveValue = defaultValue or minValue
+    end
+    liveValue = math.max(minValue, math.min(maxValue, liveValue))
+
+    local sliderValue = sliderIntDrafts[configKey]
+    if sliderValue == nil then
+        sliderValue = liveValue
+    end
+
+    ui.PushID(configKey)
+    local nextValue, changed = ui.SliderInt(label, sliderValue, minValue, maxValue)
+    if changed then
+        sliderIntDrafts[configKey] = math.max(minValue, math.min(maxValue, nextValue))
+    end
+    if ui.IsItemDeactivatedAfterEdit() then
+        local commitValue = sliderIntDrafts[configKey]
+        if commitValue ~= nil and commitValue ~= liveValue then
+            uiState.set(configKey, commitValue)
+        end
+        sliderIntDrafts[configKey] = nil
+    elseif not ui.IsItemActive() then
+        sliderIntDrafts[configKey] = nil
     end
     ui.PopID()
 end
@@ -244,7 +274,7 @@ end
 local function DrawBanList(ui, uiState, targetGroups, headingColor)
     local groups = GetSortedGodKeysByGroup()
     local godPoolFiltering, godPool = IsGodPoolFilteringActive()
-    local regionValue = uiState.view.ViewRegion or 4
+    local regionValue = store.read("ViewRegion") or 4
     local equippedWeapon = GetEquippedWeapon and GetEquippedWeapon() or ""
 
     for _, group in ipairs(targetGroups) do
@@ -293,10 +323,10 @@ end
 
 local function DrawNpcRegionFilter(ui, uiState)
     ui.Text("Show NPC Boons:")
-    local currentRegion = uiState.view.ViewRegion or 4
+    local currentRegion = store.read("ViewRegion") or 4
     for index, option in ipairs(NPC_REGION_OPTIONS) do
         if ui.RadioButton(option.label, currentRegion == option.value) then
-            uiState.set("ViewRegion", option.value)
+            store.write("ViewRegion", option.value)
             currentRegion = option.value
         end
         if index < #NPC_REGION_OPTIONS then
@@ -315,6 +345,9 @@ local function DrawSettingsTab(ui, uiState)
         ui.Indent()
         local priorityVal, priorityChanged = ui.Checkbox("Prioritize Core Boons", view.Padding_UsePriority ~= false)
         if priorityChanged then uiState.set("Padding_UsePriority", priorityVal) end
+
+        DrawDeferredSliderInt(ui, uiState, "Priority Bias", "Padding_PriorityChance", 0, 100, 75)
+        ui.TextDisabled("(0 = random banned padding, 100 = always prefer priority items when available.)")
 
         local futureVal, futureChanged = ui.Checkbox("Avoid 'Future Allowed' Items",
             view.Padding_AvoidFutureAllowed ~= false)
