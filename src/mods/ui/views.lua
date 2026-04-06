@@ -101,6 +101,7 @@ function uiData.DrawRarityStepper(ui, root, row, uiState, options)
     ui.SameLine()
     local labelStart = ui.GetCursorPosX()
     uiData.DrawColoredText(ui, color, label)
+    ui.SameLine()
     ui.SetCursorPosX(labelStart + RARITY_LABEL_FIXED_WIDTH)
     if ui.Button("+") and currentValue < 3 then
         nextValue = currentValue + 1

@@ -50,21 +50,21 @@ public.store = lib.createStore(config, public.definition)
 
 `uiState` owns a private staging table and exposes:
 - `uiState.view`
-- `uiState.get(path)`
-- `uiState.set(path, value)`
-- `uiState.update(path, fn)`
-- `uiState.toggle(path)`
+- `uiState.get(alias)`
+- `uiState.set(alias, value)`
+- `uiState.update(alias, fn)`
+- `uiState.toggle(alias)`
 - `uiState.reloadFromConfig()`
 - `uiState.flushToConfig()`
 - `uiState.isDirty()`
 
 The lifecycle works like this:
-- During draw, read schema-backed values from `uiState.view`.
-- During draw, mutate schema-backed values only through `uiState.set/update/toggle`.
+- During draw, read storage-backed alias values from `uiState.view`.
+- During draw, mutate storage-backed alias values only through `uiState.set/update/toggle`.
 - In hosted mode, Framework flushes once after `DrawTab` / `DrawQuickContent` if `uiState.isDirty()` is true.
 - In standalone mode, your module flushes after draw if `uiState.isDirty()` is true.
 - After profile or hash import, Framework calls `uiState.reloadFromConfig()`.
 
-Do not write `config` directly for schema-backed fields inside `DrawTab` or `DrawQuickContent`.
+Do not write `config` directly for alias-backed managed fields inside `DrawTab` or `DrawQuickContent`.
 
-In practice: read from `uiState.view`, mutate through `public.store.uiState`, declare your fields in `stateSchema`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.
+In practice: read from `uiState.view`, mutate through `public.store.uiState`, declare persisted state in `definition.storage`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.

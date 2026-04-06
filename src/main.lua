@@ -30,14 +30,16 @@ public.definition = {
 }
 internal.definition = public.definition
 
-public.definition.stateSchema = {
-    { type = "checkbox", configKey = "EnablePadding",              default = config.EnablePadding },
-    { type = "stepper",  configKey = "Padding_PrioritizeCoreForFirstN", default = config.Padding_PrioritizeCoreForFirstN, min = 0, max = 15 },
-    { type = "checkbox", configKey = "Padding_AvoidFutureAllowed", default = config.Padding_AvoidFutureAllowed },
-    { type = "checkbox", configKey = "Padding_AllowDuos",          default = config.Padding_AllowDuos },
-    { type = "stepper",  configKey = "ImproveFirstNBoonRarity",    default = config.ImproveFirstNBoonRarity,   min = 0, max = 15 },
-    { type = "string",   configKey = "BridalGlowTargetBoon",       default = config.BridalGlowTargetBoon, maxLen = 128 },
+public.definition.storage = {
+    { type = "bool",   alias = "EnablePadding",                   configKey = "EnablePadding",                   default = config.EnablePadding },
+    { type = "int",    alias = "Padding_PrioritizeCoreForFirstN", configKey = "Padding_PrioritizeCoreForFirstN", default = config.Padding_PrioritizeCoreForFirstN, min = 0, max = 15 },
+    { type = "bool",   alias = "Padding_AvoidFutureAllowed",      configKey = "Padding_AvoidFutureAllowed",      default = config.Padding_AvoidFutureAllowed },
+    { type = "bool",   alias = "Padding_AllowDuos",               configKey = "Padding_AllowDuos",               default = config.Padding_AllowDuos },
+    { type = "int",    alias = "ImproveFirstNBoonRarity",         configKey = "ImproveFirstNBoonRarity",         default = config.ImproveFirstNBoonRarity, min = 0, max = 15 },
+    { type = "string", alias = "BridalGlowTargetBoon",            configKey = "BridalGlowTargetBoon",            default = config.BridalGlowTargetBoon, maxLen = 128 },
+    { type = "int",    alias = "ViewRegion",                      configKey = "ViewRegion",                      default = config.ViewRegion },
 }
+public.definition.ui = {}
 
 do
     local packedKeys = {}
@@ -50,8 +52,9 @@ do
         return a.key < b.key
     end)
     for _, item in ipairs(packedKeys) do
-        table.insert(public.definition.stateSchema, {
-            type = "int32",
+        table.insert(public.definition.storage, {
+            type = "int",
+            alias = item.key,
             configKey = item.key,
             default = item.default,
         })
