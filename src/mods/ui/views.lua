@@ -82,6 +82,12 @@ function uiData.GetRarityRows(root)
     return rows
 end
 
+local RARITY_BADGE_NODE = {
+    type = "rarityBadge",
+}
+
+lib.prepareWidgetNode(RARITY_BADGE_NODE, "BoonBans rarityBadge", internal.definition.customTypes)
+
 function uiData.DrawRarityStepper(ui, root, row, uiState, options)
     options = options or {}
     local rarityWidget = internal.definition.customTypes
@@ -99,7 +105,7 @@ function uiData.DrawRarityStepper(ui, root, row, uiState, options)
         ui.Text(row.name)
         ui.SameLine(RARITY_CONTROL_OFFSET)
     end
-    rarityWidget.draw(ui, {}, syntheticBound)
+    rarityWidget.draw(ui, RARITY_BADGE_NODE, syntheticBound)
     ui.PopID()
 end
 
