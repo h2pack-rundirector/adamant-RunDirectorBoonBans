@@ -1,45 +1,28 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
-local band = bit32.band
-local bnot = bit32.bnot
-local bor = bit32.bor
-local ImGuiCol = rom.ImGuiCol
-
-local FORCE_DROPDOWN_OFFSET = 84
-local FORCE_DROPDOWN_WIDTH = 220
-local RARITY_CONTROL_OFFSET = 300
-
-local function GetForceScopeState(scopeKey, uiState)
-    local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
-    if banned == 0 then
-        return nil, true
-    end
-    if total == 0 or banned ~= (total - 1) then
-        return nil, false
-    end
-
-    local currentBans = internal.GetBanConfig(scopeKey, uiState)
-
-    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
-        if band(currentBans, boon.Mask) == 0 then
-            return boon.Key, false
-        end
-    end
-
-    return nil, true
-end
-
-local function GetSpecialBoonDisplay(boon)
-    return boon.SpecialDisplayLabel or uiData.GetBoonText(boon), boon.SpecialBadgeColor, boon.SpecialTooltip
-end
-
 function uiData.GetBoonText(boon)
     return boon.Name or boon.Key or ""
 end
 
-function uiData.DoesBoonPassBanFilter(boon, isBanned)
-    local filterText = uiData.banFilterState.textLower or ""
+function uiData.GetBanFilterText(uiState)
+    return tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_TEXT_ALIAS] or "")
+end
+
+function uiData.GetBanFilterTextLower(uiState)
+    return string.lower(uiData.GetBanFilterText(uiState))
+end
+
+function uiData.GetBanFilterMode(uiState)
+    local mode = tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_MODE_ALIAS] or "all")
+    if uiData.BAN_FILTER_MODE_SET[mode] == true then
+        return mode
+    end
+    return "all"
+end
+
+function uiData.DoesBoonPassBanFilter(boon, isBanned, uiState)
+    local filterText = uiData.GetBanFilterTextLower(uiState)
     if filterText ~= "" then
         local boonText = boon.NameLower or string.lower(uiData.GetBoonText(boon))
         if not boonText:find(filterText, 1, true) then
@@ -47,16 +30,44 @@ function uiData.DoesBoonPassBanFilter(boon, isBanned)
         end
     end
 
-    if uiData.banFilterState.mode == "banned" then
+    local filterMode = uiData.GetBanFilterMode(uiState)
+    if filterMode == "banned" then
         return isBanned
     end
-    if uiData.banFilterState.mode == "allowed" then
+    if filterMode == "allowed" then
         return not isBanned
     end
-    if uiData.banFilterState.mode == "special" then
+    if filterMode == "special" then
         return uiData.IsSpecialBoon(boon)
     end
     return true
+end
+
+function uiData.BuildBanRows(scopeKey)
+    local rows = {}
+    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
+        table.insert(rows, {
+            key = boon.Key,
+            name = uiData.GetBoonText(boon),
+            alias = internal.GetBanAlias(scopeKey, boon.Key),
+            tooltip = boon.SpecialTooltip,
+            panelKeys = {
+                toggle = boon.Key .. "::toggle",
+                label = boon.Key .. "::label",
+            },
+            boon = boon,
+        })
+    end
+    return rows
+end
+
+function uiData.GetBanRows(scopeKey)
+    local rows = uiData.banRowsByScope[scopeKey]
+    if not rows then
+        rows = uiData.BuildBanRows(scopeKey)
+        uiData.banRowsByScope[scopeKey] = rows
+    end
+    return rows
 end
 
 function uiData.BuildRarityRows(root)
@@ -66,7 +77,6 @@ function uiData.BuildRarityRows(root)
             table.insert(rows, {
                 key = boon.Key,
                 name = uiData.GetBoonText(boon),
-                bit = boon.Bit,
                 alias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key),
             })
         end
@@ -83,197 +93,33 @@ function uiData.GetRarityRows(root)
     return rows
 end
 
-local rarityBadgeNodesByAlias = {}
-
-local function GetRarityBadgeNode(alias)
-    if type(alias) ~= "string" or alias == "" then
-        return nil
-    end
-
-    local node = rarityBadgeNodesByAlias[alias]
-    if node then
-        return node
-    end
-
-    node = {
-        type = "rarityBadge",
-        binds = { value = alias },
-    }
-    lib.prepareUiNode(
-        node,
-        "BoonBans rarityBadge " .. alias,
-        internal.definition.storage,
-        internal.definition.customTypes)
-    rarityBadgeNodesByAlias[alias] = node
-    return node
-end
-
-function uiData.DrawRarityStepper(ui, _root, row, uiState, options)
-    options = options or {}
-    local rarityNode = GetRarityBadgeNode(row.alias)
-    if not rarityNode then return end
-    ui.PushID("rarity_" .. row.key)
-    if not options.compact then
-        ui.Text(row.name)
-        ui.SameLine(RARITY_CONTROL_OFFSET)
-    end
-    lib.drawUiNode(ui, rarityNode, uiState, nil, internal.definition.customTypes)
-    ui.PopID()
-end
-
-function uiData.DrawBanFilterControls(ui, root)
-    local winW = ui.GetWindowWidth()
-    ui.Text("Filter:")
-    ui.SameLine()
-    ui.PushItemWidth(winW * 0.26)
-    local newText, changed = ui.InputText("##BoonFilter_" .. root.id, uiData.banFilterState.text or "", 128)
-    ui.PopItemWidth()
-    if changed then
-        uiData.banFilterState.text = newText
-        uiData.banFilterState.textLower = string.lower(newText or "")
-    end
-
-    for _, filterMode in ipairs(uiData.BAN_FILTER_MODES) do
-        ui.SameLine()
-        if ui.RadioButton(filterMode.label, uiData.banFilterState.mode == filterMode.id) then
-            uiData.banFilterState.mode = filterMode.id
-        end
-    end
-end
-
 function uiData.DrawForceView(ui, root, uiState)
-    for _, scope in ipairs(root.scopes) do
-        local forcedKey, isNone = GetForceScopeState(scope.key, uiState)
-        local preview = isNone and "None" or "<custom>"
-        local selectedKey = forcedKey
-
-        if forcedKey then
-            local forcedBoon = uiData.FindBoonByKey(scope.key, forcedKey)
-            if forcedBoon then
-                preview = GetSpecialBoonDisplay(forcedBoon)
-                selectedKey = forcedKey
+    local panelNode = uiData.GetForcePanelNode(root)
+    if panelNode then
+        ui.PushID("force_" .. root.id)
+        if lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes) then
+            for _, scope in ipairs(root.scopes) do
+                internal.UpdateGodStats(scope.key, uiState)
             end
         end
-
-        ui.PushID("force_" .. scope.key)
-        ui.TextDisabled(scope.label)
-        ui.SameLine(FORCE_DROPDOWN_OFFSET)
-        ui.PushItemWidth(FORCE_DROPDOWN_WIDTH)
-        if ui.BeginCombo("##ForceSelect", preview) then
-            if ui.Selectable("None", isNone) then
-                if internal.ResetGodBans(scope.key, uiState) then
-                    selectedKey = nil
-                    forcedKey = nil
-                end
-            end
-            for _, boon in ipairs(uiData.GetScopeBoons(scope.key)) do
-                local label, accentColor = GetSpecialBoonDisplay(boon)
-                if accentColor then
-                    ui.PushStyleColor(ImGuiCol.Text, accentColor[1], accentColor[2], accentColor[3], accentColor[4])
-                end
-                if ui.Selectable(label, boon.Key == selectedKey) then
-                    uiData.ApplyForceOne(scope.key, boon.Key, uiState)
-                    selectedKey = boon.Key
-                    forcedKey = boon.Key
-                end
-                if accentColor then
-                    ui.PopStyleColor()
-                end
-            end
-            ui.EndCombo()
-        end
-        ui.PopItemWidth()
-
-        if forcedKey then
-            local forcedBoon = uiData.FindBoonByKey(scope.key, forcedKey)
-            if forcedBoon and root.hasRarity and uiData.IsRarityEligibleBoon(forcedBoon) then
-                ui.SameLine()
-                uiData.DrawRarityStepper(ui, root, {
-                    key = scope.key .. "::" .. forcedBoon.Key,
-                    bit = forcedBoon.Bit,
-                    alias = internal.GetRarityAlias(root.primaryScopeKey, forcedBoon.Key),
-                }, uiState, {
-                    compact = true,
-                })
-            elseif forcedBoon then
-                local _, badgeColor, badgeTooltip = GetSpecialBoonDisplay(forcedBoon)
-                if badgeColor then
-                    ui.SameLine()
-                    uiData.DrawBadge(ui, forcedBoon.SpecialBadgeText or " ? ", badgeColor, badgeTooltip)
-                end
-            end
-        end
-
         ui.PopID()
     end
 end
 
 function uiData.DrawBansView(ui, root, scopeKey, uiState)
-    uiData.EnsureBanFilterRoot(root)
+    uiData.EnsureBanFilterRoot(root, uiState)
+
+    local initialBans = internal.GetBanConfig(scopeKey, uiState)
+    local panelNode = uiData.GetBanPanelNode(scopeKey)
+    if panelNode then
+        ui.PushID("bans_" .. scopeKey)
+        lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes)
+        ui.PopID()
+    end
 
     local currentBans = internal.GetBanConfig(scopeKey, uiState)
-    local scopeBanned, scopeTotal = uiData.GetScopeSummary(scopeKey, uiState)
-    local dirty = false
-    local anyVisible = false
-
-    ui.TextDisabled(uiData.FormatCountLabel(scopeBanned, scopeTotal))
-    ui.SameLine()
-    if ui.Button("Ban All##" .. scopeKey) then
-        if internal.BanAllGodBans(scopeKey, uiState) then
-            currentBans = internal.GetBanConfig(scopeKey, uiState)
-            dirty = true
-        end
-    end
-    ui.SameLine()
-    if ui.Button("Reset##" .. scopeKey) then
-        if internal.ResetGodBans(scopeKey, uiState) then
-            currentBans = internal.GetBanConfig(scopeKey, uiState)
-            dirty = true
-        end
-    end
-    ui.Separator()
-
-    uiData.DrawBanFilterControls(ui, root)
-    ui.Separator()
-
-    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
-        local isBanned = band(currentBans, boon.Mask) ~= 0
-        if uiData.DoesBoonPassBanFilter(boon, isBanned) then
-            anyVisible = true
-            ui.PushID(scopeKey .. "::" .. boon.Key)
-            local checked, changed = ui.Checkbox("##Ban", isBanned)
-            if changed then
-                if checked then
-                    currentBans = bor(currentBans, boon.Mask)
-                else
-                    currentBans = band(currentBans, bnot(boon.Mask))
-                end
-                dirty = true
-            end
-            ui.SameLine()
-
-            local drewVisual = false
-            if boon.IsSpecial and boon.SpecialBadgeColor then
-                uiData.DrawBadge(ui, boon.SpecialBadgeText or " ? ", boon.SpecialBadgeColor, boon.SpecialTooltip)
-                drewVisual = true
-            end
-
-            if drewVisual then
-                ui.SameLine()
-            end
-            ui.Text(uiData.GetBoonText(boon))
-            ui.PopID()
-        end
-    end
-
-    if dirty then
-        if internal.SetBanConfig(scopeKey, currentBans, uiState) then
-            internal.UpdateGodStats(scopeKey, uiState)
-        end
-    end
-
-    if not anyVisible then
-        ui.TextDisabled("No boons match the current filter.")
+    if currentBans ~= initialBans then
+        internal.UpdateGodStats(scopeKey, uiState)
     end
 end
 
@@ -289,8 +135,11 @@ function uiData.DrawRarityView(ui, root, uiState)
         return
     end
 
-    for _, row in ipairs(rows) do
-        uiData.DrawRarityStepper(ui, root, row, uiState)
+    local panelNode = uiData.GetRarityPanelNode(root)
+    if panelNode then
+        ui.PushID("rarity_" .. root.id)
+        lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes)
+        ui.PopID()
     end
 end
 
@@ -332,188 +181,29 @@ function uiData.DrawDangerAction(ui, actionId, buttonLabel, confirmLabel, onConf
     end
 end
 
-function uiData.DrawNpcRegionFilter(ui)
-    ui.Text("Filter NPC Sources:")
-    local currentRegion = store.read("ViewRegion") or 4
-    for index, option in ipairs(uiData.NPC_REGION_OPTIONS) do
-        if ui.RadioButton(option.label, currentRegion == option.value) then
-            store.write("ViewRegion", option.value)
-            currentRegion = option.value
-        end
-        if index < #uiData.NPC_REGION_OPTIONS then
-            ui.SameLine()
-        end
+function uiData.DrawNpcRegionFilter(ui, uiState)
+    local panelNode = uiData.GetNpcRegionFilterPanelNode()
+    if panelNode then
+        ui.PushID("npc_region_filter")
+        lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes)
+        ui.PopID()
     end
 end
 
-local function GetBridalGlowEligibleRoots()
-    if uiData.bridalGlowEligibleRoots then
-        return uiData.bridalGlowEligibleRoots
+function uiData.DrawBridalGlowView(ui, root, uiState)
+    local panelNode = uiData.GetBridalGlowPanelNode(root)
+    if panelNode then
+        ui.PushID("bridal_glow_" .. root.id)
+        lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes)
+        ui.PopID()
     end
-
-    local roots = uiData.GetVisibleRoots("Olympians")
-    local cached = {}
-    for i, root in ipairs(roots) do
-        cached[i] = root
-    end
-    uiData.bridalGlowEligibleRoots = cached
-    return cached
-end
-
-local function GetBridalGlowEligibleBoons(root)
-    if not root then
-        return uiData.EMPTY_LIST
-    end
-
-    local cached = uiData.bridalGlowBoonsByRoot[root.id]
-    if cached then
-        return cached
-    end
-
-    local boons = {}
-    for _, boon in ipairs(uiData.GetScopeBoons(root.primaryScopeKey)) do
-        if uiData.IsBridalGlowEligibleBoon(boon) then
-            boon.BridalGlowLabel = boon.BridalGlowLabel or uiData.GetBoonText(boon)
-            table.insert(boons, boon)
-        end
-    end
-    uiData.bridalGlowBoonsByRoot[root.id] = boons
-    return boons
-end
-
-local function FindBridalGlowRootForTarget(roots, selectedBoonKey)
-    if not selectedBoonKey or selectedBoonKey == "" then
-        return nil
-    end
-
-    for _, root in ipairs(roots) do
-        local boon = uiData.FindBoonByKey(root.primaryScopeKey, selectedBoonKey)
-        if boon and uiData.IsBridalGlowEligibleBoon(boon) then
-            return root
-        end
-    end
-    return nil
-end
-
-local function EnsureBridalGlowRootSelection(roots, selectedBoonKey)
-    local transientRootKey = uiData.bridalGlowSelection.rootKey
-    if transientRootKey then
-        for _, root in ipairs(roots) do
-            if root.rootKey == transientRootKey then
-                return root
-            end
-        end
-    end
-
-    local matchedRoot = FindBridalGlowRootForTarget(roots, selectedBoonKey)
-    if matchedRoot then
-        uiData.bridalGlowSelection.rootKey = matchedRoot.rootKey
-        return matchedRoot
-    end
-
-    local fallback = roots[1]
-    uiData.bridalGlowSelection.rootKey = fallback and fallback.rootKey or nil
-    return fallback
-end
-
-function uiData.DrawBridalGlowControls(ui, uiState)
-    local paneHeight = 220
-    local godPaneWidth = 200
-    ui.TextDisabled("Choose the Olympian god and boon pool Bridal Glow can target.")
-
-    local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
-    local eligibleRoots = GetBridalGlowEligibleRoots()
-    if #eligibleRoots == 0 then
-        ui.TextDisabled("No eligible Olympian gods are currently available.")
-        return
-    end
-
-    local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey)
-    local selectedRootKey = selectedRoot and selectedRoot.rootKey or nil
-
-    local currentTarget = nil
-    if selectedBoonKey ~= "" then
-        for _, root in ipairs(eligibleRoots) do
-            currentTarget = uiData.FindBoonByKey(root.primaryScopeKey, selectedBoonKey)
-            if currentTarget and uiData.IsBridalGlowEligibleBoon(currentTarget) then
-                currentTarget.BridalGlowLabel = currentTarget.BridalGlowLabel or uiData.GetBoonText(currentTarget)
-                break
-            end
-            currentTarget = nil
-        end
-    end
-
-    local eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
-
-    if currentTarget then
-        ui.Text("Current Target:")
-        ui.SameLine()
-        ui.TextDisabled(currentTarget.BridalGlowLabel)
-    else
-        ui.TextDisabled("Current Target: Random")
-    end
-
-    ui.BeginChild("##BridalGlowGodList", godPaneWidth, paneHeight, true)
-    ui.TextDisabled("Eligible Gods")
-    ui.Separator()
-    for _, root in ipairs(eligibleRoots) do
-        if ui.Selectable(root.displayLabel, root.rootKey == selectedRootKey) then
-            uiData.bridalGlowSelection.rootKey = root.rootKey
-            selectedRoot = root
-            selectedRootKey = root.rootKey
-            eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
-        end
-    end
-    ui.EndChild()
-
-    ui.SameLine()
-    ui.BeginChild("##BridalGlowBoonList", 0, paneHeight, true)
-    ui.TextDisabled("Eligible Boons")
-    ui.Separator()
-    if ui.Selectable("Random", selectedBoonKey == "") then
-        selectedBoonKey = ""
-        internal.SetBridalGlowTargetBoonKey(nil, uiState)
-    end
-    for _, boon in ipairs(eligibleBoons) do
-        if ui.Selectable(boon.BridalGlowLabel, boon.Key == selectedBoonKey) then
-            selectedBoonKey = boon.Key
-            internal.SetBridalGlowTargetBoonKey(boon.Key, uiState)
-        end
-    end
-    ui.EndChild()
 end
 
 function uiData.DrawSettingsTab(ui, uiState)
-    local view = uiState.view
-    local padVal, padChanged = ui.Checkbox("Enable Padding", view.EnablePadding == true)
-    if padChanged then uiState.set("EnablePadding", padVal) end
-    ui.TextDisabled("Fills up menus to ensure enough options are available.")
-
-    if view.EnablePadding == true then
-        ui.Indent()
-        uiData.DrawStepInput(ui, uiState, "Prioritize Core Boons for First N", "Padding_PrioritizeCoreForFirstN", 0, 15, 1)
-        ui.TextDisabled("(0 = disabled, N = prefer core boons in padding for the first N picks from each god.)")
-
-        local futureVal, futureChanged = ui.Checkbox("Avoid 'Future Allowed' Items",
-            view.Padding_AvoidFutureAllowed ~= false)
-        if futureChanged then uiState.set("Padding_AvoidFutureAllowed", futureVal) end
-
-        local duoVal, duoChanged = ui.Checkbox("Allow Banned Duos/Legendaries", view.Padding_AllowDuos == true)
-        if duoChanged then uiState.set("Padding_AllowDuos", duoVal) end
-        ui.Unindent()
+    local panelNode = uiData.GetSettingsPanelNode()
+    if panelNode then
+        ui.PushID("settings")
+        lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes)
+        ui.PopID()
     end
-
-    ui.Separator()
-    uiData.DrawStepInput(ui, uiState, "Improve N Boon Rarity to Epic", "ImproveFirstNBoonRarity", 0, 15, 1)
-    ui.TextDisabled("(Improve the rarity of offered boons unless specifically forced by config.)")
-
-    ui.Separator()
-    uiData.DrawDangerAction(ui, "reset_all_bans", "RESET ALL BANS (Global)", "Confirm RESET ALL BANS", function()
-        if internal.ResetAllBans(uiState) then
-            internal.RecalculateBannedCounts(uiState)
-        end
-    end)
-    uiData.DrawDangerAction(ui, "reset_all_rarity", "RESET ALL RARITY (Global)", "Confirm RESET ALL RARITY", function()
-        internal.ResetAllRarity(uiState)
-    end)
 end

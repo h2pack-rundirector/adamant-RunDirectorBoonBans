@@ -67,11 +67,21 @@ uiData.BAN_FILTER_MODES = {
     { id = "allowed", label = "Allowed" },
     { id = "special", label = "Special" },
 }
+uiData.BAN_FILTER_MODE_SET = {
+    all = true,
+    banned = true,
+    allowed = true,
+    special = true,
+}
+uiData.BAN_FILTER_TEXT_ALIAS = "BanFilterText"
+uiData.BAN_FILTER_MODE_ALIAS = "BanFilterMode"
+uiData.NPC_VIEW_REGION_ALIAS = "NpcViewRegion"
 uiData.DIRECT_BANS_VIEW_ID = "__bans__"
 uiData.FORCE_VIEW_ID = "__force__"
 uiData.RARITY_VIEW_ID = "__rarity__"
 uiData.SIDEBAR_RATIO = 0.28
 uiData.CONFIRM_TIMEOUT = 5.0
+uiData.BAN_LABEL_START = 28
 
 uiData.sliderIntDrafts = {}
 uiData.rootDescriptors = nil
@@ -79,14 +89,13 @@ uiData.rootsByMainTab = nil
 uiData.rootIdByScopeKey = nil
 uiData.visibleRootsByMainTab = {}
 uiData.bridalGlowEligibleRoots = nil
+uiData.banRowsByScope = {}
+uiData.banPanelLayoutsByScope = {}
 uiData.rarityRowsByRoot = {}
 uiData.bridalGlowBoonsByRoot = {}
 uiData.selectedRootByMainTab = {}
 uiData.banFilterState = {
     rootId = nil,
-    text = "",
-    textLower = "",
-    mode = "all",
 }
 uiData.pendingDanger = nil
 uiData.cachedEquippedWeaponName = ""
@@ -199,6 +208,10 @@ function uiData.FormatCountLabel(banned, total)
     return string.format("(%d/%d Banned)", banned, total)
 end
 
+function uiData.GetBanLabelStart()
+    return uiData.BAN_LABEL_START
+end
+
 function uiData.GetScopeBoons(scopeKey)
     local entry = godInfo[scopeKey]
     if entry and entry.boons then
@@ -218,6 +231,44 @@ function uiData.FindBoonByKey(scopeKey, boonKey)
             return boon
         end
     end
+end
+
+function uiData.GetForcedBoonSelection(scopeKey, packedMask)
+    local boons = uiData.GetScopeBoons(scopeKey)
+    local allowedBoon = nil
+    local banned = 0
+    local total = 0
+
+    for _, boon in ipairs(boons) do
+        total = total + 1
+        if bit32.band(packedMask or 0, boon.Mask) ~= 0 then
+            banned = banned + 1
+        else
+            allowedBoon = boon
+        end
+    end
+
+    if banned == 0 then
+        return nil, true, false
+    end
+    if total == 0 or banned ~= (total - 1) then
+        return nil, false, true
+    end
+    return allowedBoon, false, false
+end
+
+function uiData.GetForcedBoonDisplayLabel(boon)
+    if not boon then
+        return ""
+    end
+    return boon.SpecialDisplayLabel or uiData.GetBoonText(boon)
+end
+
+function uiData.GetForcedBoonStatusText(boon)
+    if not boon then
+        return ""
+    end
+    return boon.SpecialBadgeText or uiData.GetForcedBoonDisplayLabel(boon)
 end
 
 function uiData.GetRootMeta(rootKey)

@@ -18,8 +18,8 @@ RunDirectorBoonBans_Internal = RunDirectorBoonBans_Internal or {}
 local internal = RunDirectorBoonBans_Internal
 
 local function BuildPackedStorageNode(item)
-    local rarityBits = internal.GetOrBuildPackedRarityBits()[item.key]
-    if not rarityBits then
+    local bits = internal.GetPackedStorageBits(item.key)
+    if not bits then
         return {
             type = "int",
             alias = item.key,
@@ -28,7 +28,7 @@ local function BuildPackedStorageNode(item)
     end
 
     local packedWidth = nil
-    local lastBit = rarityBits[#rarityBits]
+    local lastBit = bits[#bits]
     if lastBit then
         packedWidth = lastBit.offset + lastBit.width
     end
@@ -39,7 +39,7 @@ local function BuildPackedStorageNode(item)
         configKey = item.key,
         default = item.default,
         width = packedWidth,
-        bits = rarityBits,
+        bits = bits,
     }
 end
 
@@ -65,7 +65,9 @@ local function BuildDefinitionStorage()
         { type = "bool",   alias = "Padding_AllowDuos",               configKey = "Padding_AllowDuos" },
         { type = "int",    alias = "ImproveFirstNBoonRarity",         configKey = "ImproveFirstNBoonRarity",         min = 0,     max = 15 },
         { type = "string", alias = "BridalGlowTargetBoon",            configKey = "BridalGlowTargetBoon",            maxLen = 128 },
-        { type = "int",    alias = "ViewRegion",                      configKey = "ViewRegion" },
+        { type = "int",    alias = "NpcViewRegion",                   lifetime = "transient",                         default = 4, min = 1, max = 4 },
+        { type = "string", alias = "BanFilterText",                   lifetime = "transient",                         default = "", maxLen = 128 },
+        { type = "string", alias = "BanFilterMode",                   lifetime = "transient",                         default = "all", maxLen = 16 },
     }
 
     local packedKeys = {}

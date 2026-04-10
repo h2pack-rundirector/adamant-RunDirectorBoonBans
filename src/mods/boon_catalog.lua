@@ -1,6 +1,11 @@
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 
+internal.baseBoonCatalog = nil
+internal.packedBanBits = nil
+internal.packedRarityBits = nil
+internal.packedStorageBits = nil
+
 local bit32 = require("bit32")
 local lshift = bit32.lshift
 
@@ -243,6 +248,73 @@ function internal.GetRarityAlias(scopeKey, boonKey)
     return internal.MakeRarityAlias(rarityVar, boonKey)
 end
 
+function internal.MakeBanAlias(packedVar, boonKey)
+    if type(packedVar) ~= "string" or packedVar == "" then
+        return nil
+    end
+    if type(boonKey) ~= "string" or boonKey == "" then
+        return nil
+    end
+    return packedVar .. "__" .. boonKey
+end
+
+function internal.GetBanRootAlias(scopeKey)
+    local meta = godMeta[scopeKey]
+    local packedConfig = meta and meta.packedConfig or nil
+    return packedConfig and packedConfig.var or nil
+end
+
+function internal.GetBanAlias(scopeKey, boonKey)
+    local packedVar = internal.GetBanRootAlias(scopeKey)
+    if not packedVar or not internal.GetOrBuildPackedBanBits()[packedVar] then
+        return nil
+    end
+    return internal.MakeBanAlias(packedVar, boonKey)
+end
+
+local function GetCatalogSourceKey(metaKey, meta)
+    if type(meta) ~= "table" then
+        return metaKey
+    end
+    return meta.duplicateOf or metaKey
+end
+
+local function BuildPackedBanBits()
+    local bitsByPackedVar = {}
+    local catalog = internal.GetOrBuildBaseBoonCatalog()
+
+    for metaKey, meta in pairs(godMeta) do
+        local packedVar = meta and meta.packedConfig and meta.packedConfig.var or nil
+        local catalogKey = GetCatalogSourceKey(metaKey, meta)
+        local entry = packedVar and catalog[catalogKey] or nil
+        if packedVar and entry and entry.boons and #entry.boons > 0 then
+            local bits = {}
+            for _, boon in ipairs(entry.boons) do
+                bits[#bits + 1] = {
+                    alias = internal.MakeBanAlias(packedVar, boon.Key),
+                    label = boon.Name,
+                    offset = boon.Bit,
+                    width = 1,
+                    type = "bool",
+                    default = false,
+                }
+            end
+            if #bits > 0 then
+                bitsByPackedVar[packedVar] = bits
+            end
+        end
+    end
+
+    return bitsByPackedVar
+end
+
+function internal.GetOrBuildPackedBanBits()
+    if not internal.packedBanBits then
+        internal.packedBanBits = BuildPackedBanBits()
+    end
+    return internal.packedBanBits
+end
+
 function internal.GetOrBuildPackedRarityBits()
     if internal.packedRarityBits then
         return internal.packedRarityBits
@@ -275,4 +347,22 @@ function internal.GetOrBuildPackedRarityBits()
 
     internal.packedRarityBits = bitsByPackedVar
     return bitsByPackedVar
+end
+
+function internal.GetOrBuildPackedStorageBits()
+    if not internal.packedStorageBits then
+        local bitsByPackedVar = {}
+        for packedVar, bits in pairs(internal.GetOrBuildPackedBanBits()) do
+            bitsByPackedVar[packedVar] = bits
+        end
+        for packedVar, bits in pairs(internal.GetOrBuildPackedRarityBits()) do
+            bitsByPackedVar[packedVar] = bits
+        end
+        internal.packedStorageBits = bitsByPackedVar
+    end
+    return internal.packedStorageBits
+end
+
+function internal.GetPackedStorageBits(rootAlias)
+    return internal.GetOrBuildPackedStorageBits()[rootAlias]
 end

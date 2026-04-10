@@ -139,7 +139,7 @@ function uiData.GetRootsForTab(tabName)
     return uiData.rootsByMainTab[tabName] or uiData.EMPTY_LIST
 end
 
-function uiData.GetVisibleRoots(tabName)
+function uiData.GetVisibleRoots(tabName, uiState)
     local allRoots = uiData.GetRootsForTab(tabName)
     local visible = uiData.visibleRootsByMainTab[tabName]
     if not visible then
@@ -156,7 +156,10 @@ function uiData.GetVisibleRoots(tabName)
         godPoolFiltering, godPool = uiData.IsGodPoolFilteringActive()
     end
 
-    local regionValue = store.read("ViewRegion") or 4
+    local regionValue = uiData.NPC_REGION_OPTIONS[#uiData.NPC_REGION_OPTIONS].value
+    if tabName == "NPCs" and uiState and uiState.view then
+        regionValue = uiState.view[uiData.NPC_VIEW_REGION_ALIAS] or regionValue
+    end
 
     for _, root in ipairs(allRoots) do
         local shouldDraw = true
@@ -207,21 +210,22 @@ function uiData.IsEquippedHammerRoot(root)
     return equippedWeapon ~= "" and equippedWeapon:find(root.rootKey, 1, true) ~= nil
 end
 
-function uiData.ResetBanFilter(rootId)
+function uiData.ResetBanFilter(rootId, uiState)
     uiData.banFilterState.rootId = rootId
-    uiData.banFilterState.text = ""
-    uiData.banFilterState.textLower = ""
-    uiData.banFilterState.mode = "all"
-end
-
-function uiData.SelectRoot(tabName, rootId)
-    if uiData.selectedRootByMainTab[tabName] ~= rootId then
-        uiData.selectedRootByMainTab[tabName] = rootId
-        uiData.ResetBanFilter(rootId)
+    if uiState then
+        uiState.reset(uiData.BAN_FILTER_TEXT_ALIAS)
+        uiState.reset(uiData.BAN_FILTER_MODE_ALIAS)
     end
 end
 
-function uiData.EnsureSelectedRoot(tabName, visibleRoots)
+function uiData.SelectRoot(tabName, rootId, uiState)
+    if uiData.selectedRootByMainTab[tabName] ~= rootId then
+        uiData.selectedRootByMainTab[tabName] = rootId
+        uiData.ResetBanFilter(rootId, uiState)
+    end
+end
+
+function uiData.EnsureSelectedRoot(tabName, visibleRoots, uiState)
     local currentId = uiData.selectedRootByMainTab[tabName]
     for _, root in ipairs(visibleRoots) do
         if root.id == currentId then
@@ -242,7 +246,7 @@ function uiData.EnsureSelectedRoot(tabName, visibleRoots)
         fallback = visibleRoots[1]
     end
     if fallback then
-        uiData.SelectRoot(tabName, fallback.id)
+        uiData.SelectRoot(tabName, fallback.id, uiState)
         return fallback
     end
 
@@ -250,9 +254,9 @@ function uiData.EnsureSelectedRoot(tabName, visibleRoots)
     return nil
 end
 
-function uiData.EnsureBanFilterRoot(root)
+function uiData.EnsureBanFilterRoot(root, uiState)
     if uiData.banFilterState.rootId ~= root.id then
-        uiData.ResetBanFilter(root.id)
+        uiData.ResetBanFilter(root.id, uiState)
     end
 end
 
